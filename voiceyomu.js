@@ -5,6 +5,7 @@
 // @description  Send selected text to voicevox server and play the response voice
 // @author       Hsiao-Chieh, Ma
 // @match        https://kakuyomu.jp/*/*
+// @match        https://ncode.syosetu.com/*/*
 // @icon         https://cdn-static.kakuyomu.jp/images/brand/favicons/app-256.png
 // @grant        GM_xmlhttpRequest
 // ==/UserScript==
@@ -22,8 +23,12 @@
           <option value="2">四国めたん</option>
           <option value="3">ずんだもん</option>
           <option value="8">春日部つむぎ</option>
+          <option value="10">雨晴はう</option>
           <option value="14">冥鳴ひまり</option>
+          <option value="20">もち子さん</option>
+          <option value="23">WhiteCUL</option>
           <option value="47">ナースロボ＿タイプＴ</option>
+          <option value="58">猫使ビィ</option>
         </select>
       </div>
 
@@ -36,7 +41,7 @@
       <div class="settings-row">
         <label for="pitch-slider">高さ </label>
         <input type="range" id="pitch-slider" min="-0.15" max="0.15" step="0.01" value="0">
-        <span class="value-display" id="pitch-display">0.0</span>
+        <span class="value-display" id="pitch-display">0.00</span>
       </div>
 
       <div class="settings-row">
@@ -56,6 +61,23 @@
 
     <style>
       /* Panel CSS */
+      #voicevox-panel {
+        /* Set the background image */
+        background-image: url('https://voicevox.hiroshiba.jp/static/f0dd9ef1a6128916921e1b3e5b817188/90d07/bustup-shikoku_metan.webp'); 
+        background-size: cover; /* make sure the image covers the entire panel */
+        background-position: center; /* center the image in the panel */
+        background-repeat: no-repeat; /* rrevent the image from repeating */
+      }
+
+      #voicevox-panel .settings-row,
+      #voicevox-panel label,
+      #voicevox-panel .value-display,
+      #voicevox-panel select,
+      #voicevox-panel input[type=range],
+      #voicevox-panel button {
+        opacity: 0.9;       
+      }
+
       #voicevox-panel .settings-row {
         display: flex;
         align-items: center;
@@ -67,7 +89,7 @@
       }
 
       #voicevox-panel .value-display {
-        width: 30px;
+        width: 45px;
         /* Fixed width for the value display */
         text-align: right;
         margin-left: 10px;
@@ -101,7 +123,7 @@
     });
 
     pitchSlider.addEventListener('input', function() {
-      document.getElementById('pitch-display').textContent = Number(pitchSlider.value).toFixed(1);
+      document.getElementById('pitch-display').textContent = Number(pitchSlider.value).toFixed(2);
     });
 
     intonationSlider.addEventListener('input', function() {
@@ -116,8 +138,31 @@
       intonationSlider.value = 1.0;
       document.getElementById('volume-display').textContent = "1.0";
       document.getElementById('speed-display').textContent = "1.0";
-      document.getElementById('pitch-display').textContent = "0.0";
+      document.getElementById('pitch-display').textContent = "0.00";
       document.getElementById('intonation-display').textContent = "1.0";
+    });
+
+    var speakerImageMap = {
+      '2': 'https://voicevox.hiroshiba.jp/static/f0dd9ef1a6128916921e1b3e5b817188/90d07/bustup-shikoku_metan.webp',
+      '3': 'https://voicevox.hiroshiba.jp/static/7da24e15118528310d0270a29ef82165/90d07/bustup-zundamon.webp',
+      '8': 'https://voicevox.hiroshiba.jp/static/046153ad2a4ff3b8f3b238fbb6c3024a/90d07/bustup-kasukabe_tsumugi.webp',
+      '10': 'https://voicevox.hiroshiba.jp/static/787b7910f89088ba30dc089704a2a6a5/90d07/bustup-amehare_hau.webp',
+      '14': 'https://voicevox.hiroshiba.jp/static/2c28b01dc088f64b901f8cfbe273ec85/90d07/bustup-meimei_himari.webp',
+      '20': 'https://voicevox.hiroshiba.jp/static/33a2e472b53194c79ec2eac3e1d1b39e/90d07/bustup-mochikosan.webp',
+      '23': 'https://voicevox.hiroshiba.jp/static/0e11b3f7df4ead3289a19d1535f21da1/90d07/bustup-white_cul.webp',
+      '47': 'https://voicevox.hiroshiba.jp/static/784a947d7d05852cef6598c065cc5b61/90d07/bustup-nurserobo_typet.webp',
+      '58': 'https://voicevox.hiroshiba.jp/static/84a6703fd70f01e44a34e6aa2ffe361f/90d07/bustup-nekotsuka_bi.webp'
+    };
+
+    var speakerSelect = document.getElementById('speaker-select');
+    var panel = document.getElementById('voicevox-panel');
+
+    speakerSelect.addEventListener('change', function() {
+      var selectedSpeaker = speakerSelect.value;
+      var imageUrl = speakerImageMap[selectedSpeaker];
+      if (imageUrl) {
+        panel.style.backgroundImage = 'url(' + imageUrl + ')';
+      }
     });
   }
 
@@ -131,20 +176,18 @@
     }
   });
 
-  function getSentenceFromSelection(selection) {
-    // Get the text from the selection range
-    let text = selection.toString();
-
-    // Regular expression to match a sentence
-    let sentenceRegex = /[^.!?]*[.!?]/g;
-    let sentences = text.match(sentenceRegex);
-
-    if (sentences && sentences.length > 0) {
-      // Return the first sentence (you may need to adjust this logic)
-      return sentences[0];
-    }
-
-    return text; // Fallback to return the whole text if no sentence is found
+  function removeFurigana(text) {
+    // Create a temporary div element
+    var tempDiv = document.createElement('div');
+    // Set the innerHTML to the text
+    tempDiv.innerHTML = text;
+    // Remove <ruby> elements
+    tempDiv.querySelectorAll('ruby').forEach(function(ruby) {
+      // Replace the ruby element with its rb (kanji) content only
+      ruby.replaceWith(ruby.querySelector('rb') || ruby.innerText);
+    });
+    // Return the cleaned text
+    return tempDiv.innerText.trim();
   }
 
   // Function to handle click event on a paragraph
@@ -153,13 +196,20 @@
     event.preventDefault();
 
     // Get the text of the clicked paragraph
-    var text = event.target.innerText.trim();
+    var text = removeFurigana(event.target.innerHTML);
     // Get the current selection
     var selection = window.getSelection();
     // Check if there is highlighted text
     if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-      // Get the sentence from the selection
-      text = getSentenceFromSelection(selection);
+      // Create a range to extract HTML from the selection
+      var range = selection.getRangeAt(0);
+      var div = document.createElement("div");
+      div.appendChild(range.cloneContents());
+      var selectedHtmlContent = div.innerHTML;
+
+      // Remove furigana from selected HTML content
+      var selectedText = removeFurigana(selectedHtmlContent);
+      text = selectedText;
     }
     // Check if the text is not empty
     if (text) {
@@ -169,7 +219,7 @@
   }
 
   function sendTextToVoiceVox(text) {
-    var host = '192.168.1.118'
+    var host = 'localhost'
     var speakerId = document.getElementById('speaker-select').value
 
     // First, get the audio query
