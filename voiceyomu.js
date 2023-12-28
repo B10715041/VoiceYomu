@@ -214,7 +214,7 @@
     // Check if the text is not empty
     if (text) {
       console.log("Captured Text:", text);
-      sendTextToVoiceVox(text); // Replace '1' with the desired speaker ID
+      sendTextToVoiceVox(text);
     }
   }
 
