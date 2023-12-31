@@ -8,6 +8,8 @@
 // @match        https://ncode.syosetu.com/*/*
 // @icon         https://cdn-static.kakuyomu.jp/images/brand/favicons/app-256.png
 // @grant        GM_xmlhttpRequest
+// @grant        GM_setValue
+// @grant        GM_getValue
 // ==/UserScript==
 
 (function() {
@@ -108,6 +110,18 @@
   `;
   document.body.insertAdjacentHTML('beforeend', panelHTML);
 
+  var speakerImageMap = {
+    '2': 'https://voicevox.hiroshiba.jp/static/f0dd9ef1a6128916921e1b3e5b817188/90d07/bustup-shikoku_metan.webp',
+    '3': 'https://voicevox.hiroshiba.jp/static/7da24e15118528310d0270a29ef82165/90d07/bustup-zundamon.webp',
+    '8': 'https://voicevox.hiroshiba.jp/static/046153ad2a4ff3b8f3b238fbb6c3024a/90d07/bustup-kasukabe_tsumugi.webp',
+    '10': 'https://voicevox.hiroshiba.jp/static/787b7910f89088ba30dc089704a2a6a5/90d07/bustup-amehare_hau.webp',
+    '14': 'https://voicevox.hiroshiba.jp/static/2c28b01dc088f64b901f8cfbe273ec85/90d07/bustup-meimei_himari.webp',
+    '20': 'https://voicevox.hiroshiba.jp/static/33a2e472b53194c79ec2eac3e1d1b39e/90d07/bustup-mochikosan.webp',
+    '23': 'https://voicevox.hiroshiba.jp/static/0e11b3f7df4ead3289a19d1535f21da1/90d07/bustup-white_cul.webp',
+    '47': 'https://voicevox.hiroshiba.jp/static/784a947d7d05852cef6598c065cc5b61/90d07/bustup-nurserobo_typet.webp',
+    '58': 'https://voicevox.hiroshiba.jp/static/84a6703fd70f01e44a34e6aa2ffe361f/90d07/bustup-nekotsuka_bi.webp'
+  };
+
   function attachSliderEventListeners() {
     var volumeSlider = document.getElementById('volume-slider');
     var speedSlider = document.getElementById('speed-slider');
@@ -115,18 +129,22 @@
     var intonationSlider = document.getElementById('intonation-slider');
 
     volumeSlider.addEventListener('input', function() {
+      GM_setValue('volume', volumeSlider.value);
       document.getElementById('volume-display').textContent = Number(volumeSlider.value).toFixed(1);
     });
 
     speedSlider.addEventListener('input', function() {
+      GM_setValue('speed', speedSlider.value);
       document.getElementById('speed-display').textContent = Number(speedSlider.value).toFixed(1);
     });
 
     pitchSlider.addEventListener('input', function() {
+      GM_setValue('pitch', pitchSlider.value);
       document.getElementById('pitch-display').textContent = Number(pitchSlider.value).toFixed(2);
     });
 
     intonationSlider.addEventListener('input', function() {
+      GM_setValue('intoation', intonationSlider.value)
       document.getElementById('intonation-display').textContent = Number(intonationSlider.value).toFixed(1);
     });
 
@@ -142,31 +160,50 @@
       document.getElementById('intonation-display').textContent = "1.0";
     });
 
-    var speakerImageMap = {
-      '2': 'https://voicevox.hiroshiba.jp/static/f0dd9ef1a6128916921e1b3e5b817188/90d07/bustup-shikoku_metan.webp',
-      '3': 'https://voicevox.hiroshiba.jp/static/7da24e15118528310d0270a29ef82165/90d07/bustup-zundamon.webp',
-      '8': 'https://voicevox.hiroshiba.jp/static/046153ad2a4ff3b8f3b238fbb6c3024a/90d07/bustup-kasukabe_tsumugi.webp',
-      '10': 'https://voicevox.hiroshiba.jp/static/787b7910f89088ba30dc089704a2a6a5/90d07/bustup-amehare_hau.webp',
-      '14': 'https://voicevox.hiroshiba.jp/static/2c28b01dc088f64b901f8cfbe273ec85/90d07/bustup-meimei_himari.webp',
-      '20': 'https://voicevox.hiroshiba.jp/static/33a2e472b53194c79ec2eac3e1d1b39e/90d07/bustup-mochikosan.webp',
-      '23': 'https://voicevox.hiroshiba.jp/static/0e11b3f7df4ead3289a19d1535f21da1/90d07/bustup-white_cul.webp',
-      '47': 'https://voicevox.hiroshiba.jp/static/784a947d7d05852cef6598c065cc5b61/90d07/bustup-nurserobo_typet.webp',
-      '58': 'https://voicevox.hiroshiba.jp/static/84a6703fd70f01e44a34e6aa2ffe361f/90d07/bustup-nekotsuka_bi.webp'
-    };
 
     var speakerSelect = document.getElementById('speaker-select');
     var panel = document.getElementById('voicevox-panel');
 
     speakerSelect.addEventListener('change', function() {
+      GM_setValue('speakerId', speakerSelect.value);
       var selectedSpeaker = speakerSelect.value;
       var imageUrl = speakerImageMap[selectedSpeaker];
       if (imageUrl) {
         panel.style.backgroundImage = 'url(' + imageUrl + ')';
       }
     });
+
   }
 
+  function loadSettings() {
+    // Retrieve and parse the values, providing default values if necessary
+    var savedVolume = parseFloat(GM_getValue('volume', '1.0'));
+    document.getElementById('volume-slider').value = savedVolume;
+    document.getElementById('volume-display').textContent = savedVolume.toFixed(1);
+
+    var savedSpeed = parseFloat(GM_getValue('speed', '1.0'));
+    document.getElementById('speed-slider').value = savedSpeed;
+    document.getElementById('speed-display').textContent = savedSpeed.toFixed(1);
+
+    var savedPitch = parseFloat(GM_getValue('pitch', '0.0'));
+    document.getElementById('pitch-slider').value = savedPitch;
+    document.getElementById('pitch-display').textContent = savedPitch.toFixed(2);
+
+    var savedIntonation = parseFloat(GM_getValue('intonation', '1.0'));
+    document.getElementById('intonation-slider').value = savedIntonation;
+    document.getElementById('intonation-display').textContent = savedIntonation.toFixed(1);
+
+    var savedSpeakerId = GM_getValue('speakerId', '2'); // Default to '2' if not set
+    document.getElementById('speaker-select').value = savedSpeakerId;
+    var imageUrl = speakerImageMap[savedSpeakerId];
+    if (imageUrl) {
+        document.getElementById('voicevox-panel').style.backgroundImage = 'url(' + imageUrl + ')';
+    }
+  }
+
+
   attachSliderEventListeners();
+  loadSettings();
 
   // Toggle panel display
   document.addEventListener('keydown', function(e) {
