@@ -106,6 +106,11 @@
       #voicevox-panel button {
         margin-top: 10px;
       }
+
+      p.readable:hover {
+        text-decoration: underline;
+        cursor: pointer;
+      }
     </style>
   `;
   document.body.insertAdjacentHTML('beforeend', panelHTML);
@@ -325,6 +330,7 @@
 
   document.querySelectorAll('p').forEach(function(paragraph) {
     paragraph.addEventListener('click', handleParagraphClick, false);
+    paragraph.classList.add('readable');
   });
 
 
