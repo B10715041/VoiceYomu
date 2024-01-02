@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VoiceYomu
 // @namespace    http://tampermonkey.net/
-// @version      2023-12-27
+// @version      2023-01-03
 // @description  Send selected text to voicevox server and play the response voice
 // @author       Hsiao-Chieh, Ma
 // @match        https://kakuyomu.jp/*/*
@@ -107,10 +107,10 @@
         margin-top: 10px;
       }
 
-      p.readable:hover {
-        text-decoration: underline;
-        cursor: pointer;
-      }
+    .sentence:hover {
+      text-decoration: underline;
+      cursor: pointer;
+    }
     </style>
   `;
   document.body.insertAdjacentHTML('beforeend', panelHTML);
@@ -232,33 +232,6 @@
     return tempDiv.innerText.trim();
   }
 
-  // Function to handle click event on a paragraph
-  function handleParagraphClick(event) {
-    // Prevent default behavior
-    event.preventDefault();
-
-    // Get the text of the clicked paragraph
-    var text = removeFurigana(event.target.innerHTML);
-    // Get the current selection
-    var selection = window.getSelection();
-    // Check if there is highlighted text
-    if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
-      // Create a range to extract HTML from the selection
-      var range = selection.getRangeAt(0);
-      var div = document.createElement("div");
-      div.appendChild(range.cloneContents());
-      var selectedHtmlContent = div.innerHTML;
-
-      // Remove furigana from selected HTML content
-      var selectedText = removeFurigana(selectedHtmlContent);
-      text = selectedText;
-    }
-    // Check if the text is not empty
-    if (text) {
-      console.log("Captured Text:", text);
-      sendTextToVoiceVox(text);
-    }
-  }
 
   function sendTextToVoiceVox(text) {
     var host = 'localhost'
@@ -329,10 +302,32 @@
 
 
   document.querySelectorAll('p').forEach(function(paragraph) {
-    paragraph.addEventListener('click', handleParagraphClick, false);
-    paragraph.classList.add('readable');
+    // Skip empty paragraphs or paragraphs within a specific class
+    if (paragraph.innerHTML.trim() === '' ||
+        paragraph.classList.contains('blank') || // for kakuyomu
+        paragraph.innerHTML.trim().replace(/<br\s*\/?>/gi, '') === '') { // for narou
+      return;
+    }
+
+    // Split the paragraph into sentences
+    var sentences = removeFurigana(paragraph.innerHTML).split(/(、|。|!)/);
+    var newHTML = sentences.map(function(sentence, index) {
+      // Only wrap text parts in spans, not the punctuation
+      return index % 2 === 0? '<span class="sentence">' + sentence + '</span>': sentence;
+    }).join('');
+    paragraph.innerHTML = newHTML;
+
+    // Add click event listener to each sentence
+    paragraph.querySelectorAll('.sentence').forEach(function(sentenceSpan) {
+      sentenceSpan.addEventListener('click', handleSentenceClick, false);
+    });
   });
 
-
+  function handleSentenceClick(event) {
+    event.preventDefault();
+    var text = event.target.textContent || event.target.innerText;
+    console.log("Captured Sentence:", text);
+    sendTextToVoiceVox(text);
+  }
 
 })();
