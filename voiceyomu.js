@@ -15,6 +15,9 @@
 (function() {
   'use strict';
 
+  var MIN_SENTENCE_LENGTH = 20;
+  var HOST = '192.168.1.118';
+
   var currentAudio = null;
   var panelHTML = `
     <div id="voicevox-panel" style="position: fixed; bottom: 10px; right: 10px; background-color: white; border: 1px solid black; padding: 10px; width: 250px; display: None;">
@@ -149,7 +152,7 @@
     });
 
     intonationSlider.addEventListener('input', function() {
-      GM_setValue('intoation', intonationSlider.value)
+      GM_setValue('intonation', intonationSlider.value)
       document.getElementById('intonation-display').textContent = Number(intonationSlider.value).toFixed(1);
     });
 
@@ -202,7 +205,7 @@
     document.getElementById('speaker-select').value = savedSpeakerId;
     var imageUrl = speakerImageMap[savedSpeakerId];
     if (imageUrl) {
-        document.getElementById('voicevox-panel').style.backgroundImage = 'url(' + imageUrl + ')';
+      document.getElementById('voicevox-panel').style.backgroundImage = 'url(' + imageUrl + ')';
     }
   }
 
@@ -234,20 +237,19 @@
 
 
   function sendTextToVoiceVox(text) {
-    var host = 'localhost'
     var speakerId = document.getElementById('speaker-select').value
 
     // First, get the audio query
     GM_xmlhttpRequest({
       method: 'POST',
-      url: 'http://' + host + ':50021/audio_query?text=' + encodeURIComponent(text) + '&speaker=' + speakerId,
+      url: 'http://' + HOST + ':50021/audio_query?text=' + encodeURIComponent(text) + '&speaker=' + speakerId,
       headers: {
         "accept": "application/json"
       },
       onload: function(response) {
         if (response.status >= 200 && response.status < 300) {
           var queryData = JSON.parse(response.responseText);
-          synthesizeVoice(queryData, 'http://' + host + ':50021/synthesis?speaker=' + speakerId);
+          synthesizeVoice(queryData, 'http://' + HOST + ':50021/synthesis?speaker=' + speakerId);
         } else {
           console.error('VoiceVox audio_query API error:', response.statusText);
         }
@@ -304,16 +306,37 @@
   document.querySelectorAll('p').forEach(function(paragraph) {
     // Skip empty paragraphs or paragraphs within a specific class
     if (paragraph.innerHTML.trim() === '' ||
-        paragraph.classList.contains('blank') || // for kakuyomu
-        paragraph.innerHTML.trim().replace(/<br\s*\/?>/gi, '') === '') { // for narou
+      paragraph.classList.contains('blank') || // for kakuyomu
+      paragraph.classList.contains('ui-tooltip') || // for kakuyomu
+      paragraph.innerHTML.trim().replace(/<br\s*\/?>/gi, '') === '') { // for narou
       return;
     }
 
     // Split the paragraph into sentences
-    var sentences = removeFurigana(paragraph.innerHTML).split(/(、|。|!)/);
-    var newHTML = sentences.map(function(sentence, index) {
-      // Only wrap text parts in spans, not the punctuation
-      return index % 2 === 0? '<span class="sentence">' + sentence + '</span>': sentence;
+    var sentences = removeFurigana(paragraph.innerHTML).split(/(\?|。|!)/);
+    var combinedSentences = [];
+    var tempSentence = '';
+
+
+    for (var i = 0; i < sentences.length; i++) {
+      tempSentence += sentences[i];
+      // Check if it's the end of a sentence or the last element
+      if (i % 2 !== 0 || i === sentences.length - 1) {
+        if (tempSentence.length < MIN_SENTENCE_LENGTH) {
+          // If the sentence is short, combine it with the next one
+          continue;
+        }
+        combinedSentences.push(tempSentence);
+        tempSentence = '';
+      }
+    }
+
+    if (tempSentence.length > 0) {
+      combinedSentences.push(tempSentence); // Add any remaining sentence
+    }
+
+    var newHTML = combinedSentences.map(function(sentence) {
+      return '<span class="sentence">' + sentence + '</span>';
     }).join('');
     paragraph.innerHTML = newHTML;
 
