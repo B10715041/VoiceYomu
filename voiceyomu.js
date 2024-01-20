@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         VoiceYomu
 // @namespace    http://tampermonkey.net/
-// @version      2023-01-03
+// @version      2023-01-21
 // @description  Send selected text to voicevox server and play the response voice
 // @author       Hsiao-Chieh, Ma
 // @match        https://kakuyomu.jp/*/*
@@ -34,32 +34,64 @@
           <option value="23">WhiteCUL</option>
           <option value="47">ナースロボ＿タイプＴ</option>
           <option value="58">猫使ビィ</option>
+          <option value="Natsume">四季ナツメ</option>
         </select>
       </div>
 
-      <div class="settings-row">
-        <label for="volume-slider">音量 </label>
-        <input type="range" id="volume-slider" min="0" max="2" step="0.1" value="1">
-        <span class="value-display" id="volume-display">1.0</span>
+      <div id="voicevox-sliders">
+        <div class="settings-row">
+          <label for="volume-slider">音量 </label>
+          <input type="range" id="volume-slider" min="0" max="2" step="0.1" value="1">
+          <span class="value-display" id="volume-display">1.0</span>
+        </div>
+
+        <div class="settings-row">
+          <label for="pitch-slider">高さ </label>
+          <input type="range" id="pitch-slider" min="-0.15" max="0.15" step="0.01" value="0">
+          <span class="value-display" id="pitch-display">0.00</span>
+        </div>
+
+        <div class="settings-row">
+          <label for="speed-slider">話速 </label>
+          <input type="range" id="speed-slider" min="0.5" max="2" step="0.1" value="1">
+          <span class="value-display" id="speed-display">1.0</span>
+        </div>
+
+        <div class="settings-row">
+          <label for="intonation-slider">抑揚 </label>
+          <input type="range" id="intonation-slider" min="0" max="2" step="0.1" value="1">
+          <span class="value-display" id="intonation-display">1.0</span>
+        </div>
       </div>
 
-      <div class="settings-row">
-        <label for="pitch-slider">高さ </label>
-        <input type="range" id="pitch-slider" min="-0.15" max="0.15" step="0.01" value="0">
-        <span class="value-display" id="pitch-display">0.00</span>
+      <!-- Natsume settings -->
+      <div id="natsume-settings" style="display: none;">
+        <div class="settings-row">
+          <label for="sdp-ratio-slider">SDP Ratio</label>
+          <input type="range" id="sdp-ratio-slider" min="0" max="1" step="0.1" value="0.5">
+          <span id="sdp-ratio-display">0.5</span>
+        </div>
+        <div class="settings-row">
+          <label for="noise-scale-slider">Noise</label>
+          <input type="range" id="noise-scale-slider" min="0" max="2" step="0.1" value="0.6">
+          <span id="noise-scale-display">0.6</span>
+        </div>
+        <div class="settings-row">
+          <label for="noise-scale-w-slider">Noise W</label>
+          <input type="range" id="noise-scale-w-slider" min="0" max="2" step="0.1" value="0.9">
+          <span id="noise-scale-w-display">0.9</span>
+        </div>
+        <div class="settings-row">
+          <label for="length-scale-slider">Length</label>
+          <input type="range" id="length-scale-slider" min="0.1" max="2" step="0.1" value="1">
+          <span id="length-scale-display">1.0</span>
+        </div>
+        <div class="settings-row">
+          <label for="wsl2-ip-input">Host</label>
+          <input type="text" id="wsl2-ip-input" value="127.0.0.1">
+        </div>
       </div>
-
-      <div class="settings-row">
-        <label for="speed-slider">話速 </label>
-        <input type="range" id="speed-slider" min="0.5" max="2" step="0.1" value="1">
-        <span class="value-display" id="speed-display">1.0</span>
-      </div>
-
-      <div class="settings-row">
-        <label for="intonation-slider">抑揚 </label>
-        <input type="range" id="intonation-slider" min="0" max="2" step="0.1" value="1">
-        <span class="value-display" id="intonation-display">1.0</span>
-      </div>
+      <!-- Natsume settings end -->
 
       <button id="reset-sliders">RESET Sliders</button>
     </div>
@@ -116,18 +148,20 @@
     }
     </style>
   `;
+
   document.body.insertAdjacentHTML('beforeend', panelHTML);
 
   var speakerImageMap = {
     '2': 'https://voicevox.hiroshiba.jp/static/f0dd9ef1a6128916921e1b3e5b817188/90d07/bustup-shikoku_metan.webp',
-    '3': 'https://voicevox.hiroshiba.jp/static/7da24e15118528310d0270a29ef82165/90d07/bustup-zundamon.webp',
+    '3': 'https://voicevox.hiroshiba.jp/static/872d600b9b7872e389de2bb3888f9de5/90d07/bustup-zundamon.webp',
     '8': 'https://voicevox.hiroshiba.jp/static/046153ad2a4ff3b8f3b238fbb6c3024a/90d07/bustup-kasukabe_tsumugi.webp',
     '10': 'https://voicevox.hiroshiba.jp/static/787b7910f89088ba30dc089704a2a6a5/90d07/bustup-amehare_hau.webp',
     '14': 'https://voicevox.hiroshiba.jp/static/2c28b01dc088f64b901f8cfbe273ec85/90d07/bustup-meimei_himari.webp',
     '20': 'https://voicevox.hiroshiba.jp/static/33a2e472b53194c79ec2eac3e1d1b39e/90d07/bustup-mochikosan.webp',
     '23': 'https://voicevox.hiroshiba.jp/static/0e11b3f7df4ead3289a19d1535f21da1/90d07/bustup-white_cul.webp',
     '47': 'https://voicevox.hiroshiba.jp/static/784a947d7d05852cef6598c065cc5b61/90d07/bustup-nurserobo_typet.webp',
-    '58': 'https://voicevox.hiroshiba.jp/static/84a6703fd70f01e44a34e6aa2ffe361f/90d07/bustup-nekotsuka_bi.webp'
+    '58': 'https://voicevox.hiroshiba.jp/static/84a6703fd70f01e44a34e6aa2ffe361f/90d07/bustup-nekotsuka_bi.webp',
+    'Natsume': 'https://ec-russell.jp/yuz/image/item/detail/6059/1'
   };
 
   function attachSliderEventListeners() {
@@ -172,12 +206,20 @@
     var speakerSelect = document.getElementById('speaker-select');
     var panel = document.getElementById('voicevox-panel');
 
-    speakerSelect.addEventListener('change', function() {
+    speakerSelect.addEventListener('change', function(event) {
       GM_setValue('speakerId', speakerSelect.value);
       var selectedSpeaker = speakerSelect.value;
       var imageUrl = speakerImageMap[selectedSpeaker];
       if (imageUrl) {
         panel.style.backgroundImage = 'url(' + imageUrl + ')';
+      }
+
+      if (event.target.value === 'Natsume') {
+        document.getElementById('voicevox-sliders').style.display = 'none';
+        document.getElementById('natsume-settings').style.display = 'block';
+      } else {
+        document.getElementById('voicevox-sliders').style.display = 'block';
+        document.getElementById('natsume-settings').style.display = 'none';
       }
     });
 
@@ -260,8 +302,23 @@
     });
   }
 
-  function synthesizeVoice(queryData, synthesisEndpoint) {
+  function getNatsumeAudio(text) {
+    var sdpRatio = document.getElementById('sdp-ratio-slider').value;
+    var noiseScale = document.getElementById('noise-scale-slider').value;
+    var noiseScaleW = document.getElementById('noise-scale-w-slider').value;
+    var lengthScale = document.getElementById('length-scale-slider').value;
+    var wsl2IP = document.getElementById('wsl2-ip-input').value;
 
+    var url = `http://${wsl2IP}:5000/synthesize?text=${encodeURIComponent(text)}&sdp_ratio=${sdpRatio}&noise_scale=${noiseScale}&noise_scale_w=${noiseScaleW}&length_scale=${lengthScale}&language=JP`;
+
+    // 音声を取得し再生
+    fetch(url)
+      .then(response => response.blob())
+      .then(blob => playAudioBlob(blob))
+      .catch(error => console.error('Error fetching Natsume audio:', error));
+  }
+
+  function synthesizeVoice(queryData, synthesisEndpoint) {
     queryData['speedScale'] = document.getElementById('speed-slider').value;
     queryData['pitchScale'] = document.getElementById('pitch-slider').value;
     queryData['intonationScale'] = document.getElementById('intonation-slider').value;
@@ -350,7 +407,13 @@
     event.preventDefault();
     var text = event.target.textContent || event.target.innerText;
     console.log("Captured Sentence:", text);
-    sendTextToVoiceVox(text);
+
+    var speakerId = document.getElementById('speaker-select').value;
+    if (speakerId === 'Natsume') {
+      getNatsumeAudio(text);
+    } else {
+      sendTextToVoiceVox(text);
+    }
   }
 
 })();
